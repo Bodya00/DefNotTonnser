@@ -66,8 +66,24 @@ def scrape_params(html: str, params: List[str]) -> Dict[str, Number]:
     return extracted_params
 
 
-def get_company_name(address: str) -> str:
-    return 'Tesla'
+def scrape_company_name(html: str) -> str:
+    """
+    Get company name from summary table.
+    """
+    page = bs.BeautifulSoup(html, 'html.parser')
+    summary_table = page.find('table',  # find one summary table
+                              class_='infobox vcard')
+
+    if not summary_table:
+        raise ValueError('No summary table found')
+
+    try:
+        caption = summary_table.find('caption').text
+    except AttributeError:
+        raise ValueError('Caption of summary table not found')
+    if not caption:
+        raise ValueError('Caption of summary table not found')
+    return caption
 
 
 def download_page(address: str) -> str:
@@ -75,23 +91,25 @@ def download_page(address: str) -> str:
     return requests.get(address).text
 
 
-def convert(params: Dict[str, Number], exchange_rate: Number) -> Dict[str, Number]:
+def convert_currency(params: Dict[str, Number], exchange_rate: Dict[str, Number]) -> Dict[str, Number]:
     """
     Convert parameters to other currency.
     """
-    converted_params = {name: value * exchange_rate
-                        for name, value in params}
+    converted_params = {name: round(value * exchange_rate['exchange_rate'], 2)
+                        for name, value in params.items()}
     return converted_params
 
 
 def output(company_name, params: Dict[str, Number]) -> None:
     """Output gathered information"""
-    print(f'{company_name}:\n {params}')
+    print(f'{company_name} :')
+    params_output_string = '\n'.join([f'\t{param} is {value}' for param, value in params.items()])
+    print(params_output_string)
 
 
 if __name__ == '__main__':
-    page = download_page(company_address)
-    params = scrape_params(page, params_to_extract)
-    company_name = get_company_name(company_address)
-    params = convert(params, exchange_currency)
+    html = download_page(company_address)
+    params = scrape_params(html, params_to_extract)
+    company_name = scrape_company_name(html)
+    params = convert_currency(params, exchange_rate)
     output(company_name, params)
