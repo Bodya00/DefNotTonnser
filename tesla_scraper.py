@@ -4,7 +4,7 @@ from typing import Union, List, Dict
 import bs4 as bs
 import requests
 
-from config import multiplicators
+from config import multiplicators, company_address, params_to_extract, exchange_rate
 
 Number = Union[int, float]
 
@@ -21,29 +21,48 @@ def parse_param_string(parameter_string):
     parameter_string = parameter_string.replace('\xa0', ' ')
 
     match = re.search(
-            r'(?P<currency>US\$)?'  # currency
-            r'(?P<value>[+-]?\d+(?:\.\d+)?)'  # value
+            r'(?:US\$)'  # currency
+            r'(?P<value>[+−-]?\d+(?:\.\d+)?)'  # value, minus sign can be written as − or -
             r'(?P<multiplicator>\s[a-zA-Z]*)?',  # billion or million
             parameter_string)
 
     if not match:
-        raise ValueError('Parameter is not numeric')
+        raise ValueError('Parameter is not money amount')
 
-    currency, value, multiplicator = match.groups(default='')
-    if not currency:
-        raise ValueError('Bad currency')
+    value, multiplicator = match.groups(default='')
+    value = value.replace('−', '-')  # minus sign can be written as − or -
+    multiplicator = multiplicator[1:]  # eliminating required space char
+
     if multiplicator not in multiplicators:
         raise ValueError('Bad multiplicator')
-    multiplicator = multiplicator[1:]  # eliminating required space char
 
     return float(value) * multiplicators[multiplicator]
 
 
 def scrape_params(html: str, params: List[str]) -> Dict[str, Number]:
     """
-    Get company parameters from its Wikipedia page.
+    Get company parameters from summary_table on its Wikipedia page.
     """
-    extracted_params = {param: 1 for param in params}
+    params = [param.capitalize() for param in params]
+    page = bs.BeautifulSoup(html, 'html.parser')
+    extracted_params = {}
+    summary_table = page.find('table',  # find one summary table
+                              class_='infobox vcard')
+
+    if not summary_table:
+        raise ValueError('No summary table found')
+
+    for param in params:
+        try:
+            param_string = summary_table.find('th', text=param  # find header of parameter in summary table
+                                              ).next_sibling.text  # get parameter from that header
+        except AttributeError:
+            raise ValueError(f'Parameter {param} not found in summary table')
+        if not param_string:
+            raise ValueError(f'Parameter {param} not found in summary table')
+
+        extracted_params[param] = parse_param_string(param_string)
+
     return extracted_params
 
 
