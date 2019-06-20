@@ -1,4 +1,4 @@
-company_address = 'https://en.wikipedia.org/wiki/IBM'
+company_address = 'https://en.wikipedia.org/wiki/Tesla,_Inc.'
 exchange_rate = {'name': 'DKK', 'exchange_rate': 6.472}
 multiplicators = {'billion': 10 ** 9, 'million': 10 ** 6, '': 1}
 params_to_extract = ['operating income', 'revenue', 'net income',
