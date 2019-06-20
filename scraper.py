@@ -14,7 +14,7 @@ Currently only info from summary(left table on Wiki) is supported.
 """
 
 
-def parse_param_string(parameter_string):
+def parse_param_string(parameter_string: str) -> Number:
     """
     Get number from string of format {currency}{value}{multiplicator}
     """
@@ -100,16 +100,20 @@ def convert_currency(params: Dict[str, Number], exchange_rate: Dict[str, Number]
     return converted_params
 
 
-def output(company_name, params: Dict[str, Number]) -> None:
+def output(company_name: str, params: Dict[str, Number], currency='str') -> None:
     """Output gathered information"""
     print(f'{company_name} :')
-    params_output_string = '\n'.join([f'\t{param} is {value}' for param, value in params.items()])
+    params_output_string = '\n'.join([f'\t{param} is {value:,} {currency}' for param, value in params.items()])
     print(params_output_string)
 
 
-if __name__ == '__main__':
+def main():
     html = download_page(company_address)
     params = scrape_params(html, params_to_extract)
     company_name = scrape_company_name(html)
     params = convert_currency(params, exchange_rate)
-    output(company_name, params)
+    output(company_name, params, exchange_rate['name'])
+
+
+if __name__ == '__main__':
+    main()
